@@ -1,0 +1,2 @@
+# fast-logic-trainer
+PythonのFastAPIとPydanticを使って思考の反射神経を鍛えるトレーニング施設を作成。
