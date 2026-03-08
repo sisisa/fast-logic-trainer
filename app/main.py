@@ -1,5 +1,6 @@
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from app.api.endpoints import training
 
 app = FastAPI(
@@ -8,18 +9,19 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# APIルーターの登録（プレフィックスでバージョン管理を実施）
+# テンプレートエンジンのマウント
+templates = Jinja2Templates(directory="app/templates")
+
 app.include_router(training.router, prefix="/api/v1/training", tags=["Training"])
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui(request: Request):
+    """
+    ブラウザ用トレーニングUIを提供するエンドポイント。
+    """
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/health")
 def health_check():
-    """本番運用を見据えたヘルスチェック用エンドポイント"""
+    """ヘルスチェック用エンドポイント"""
     return {"status": "ok", "latency": "low"}
-
-@app.get("/", include_in_schema=False)
-def redirect_to_docs():
-    """
-    ルートパスへのアクセスを自動的にAPIドキュメントへリダイレクトする。
-    include_in_schema=False により、このルート自体はドキュメントに表示させない。
-    """
-    return RedirectResponse(url="/docs")

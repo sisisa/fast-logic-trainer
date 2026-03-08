@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Logic Trainer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        #status {
+            font-weight: bold;
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Fast Logic Trainer</h1>
+
+    <div class="card">
+        <h2>1. お題の取得</h2>
+        <p id="topic-text">待機中...</p>
+        <button id="get-topic-btn">お題を取得</button>
+    </div>
+
+    <div class="card">
+        <h2>2. 音声回答（STT）</h2>
+        <button id="start-btn" disabled>🎤 録音開始</button>
+        <button id="stop-btn" disabled>⏹ 終了して評価</button>
+        <p id="status"></p>
+        <div><strong>認識されたテキスト:</strong> <span id="transcript"></span></div>
+    </div>
+
+    <div class="card" id="result-container" style="display: none;">
+        <h2>3. 評価結果</h2>
+        <pre id="result-json" style="background: #e9ecef; padding: 16px; border-radius: 4px;"></pre>
+    </div>
+
+    <script>
+        let currentTopic = "";
+        let startTime = 0;
+        let finalTranscript = "";
+
+        // Web Speech APIの初期化
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        const topicText = document.getElementById('topic-text');
+        const transcriptEl = document.getElementById('transcript');
+        const statusEl = document.getElementById('status');
+        const getTopicBtn = document.getElementById('get-topic-btn');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const resultContainer = document.getElementById('result-container');
+        const resultJson = document.getElementById('result-json');
+
+        // お題取得APIの呼び出し
+        getTopicBtn.addEventListener('click', async () => {
+            const res = await fetch('/api/v1/training/topic');
+            const data = await res.json();
+            currentTopic = data.topic;
+            topicText.textContent = currentTopic;
+            startBtn.disabled = false;
+        });
+
+        // 音声認識の開始
+        startBtn.addEventListener('click', () => {
+            finalTranscript = "";
+            transcriptEl.textContent = "";
+            startTime = Date.now();
+            recognition.start();
+            statusEl.textContent = "録音中... 話してください。";
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        });
+
+        // 認識中のテキスト更新
+        recognition.onresult = (event) => {
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            transcriptEl.textContent = finalTranscript + interimTranscript;
+        };
+
+        // 音声認識の終了と評価APIの呼び出し
+        stopBtn.addEventListener('click', async () => {
+            recognition.stop();
+            statusEl.textContent = "評価中...";
+            stopBtn.disabled = true;
+
+            const timeTakenMs = Date.now() - startTime;
+            // 簡易的に認識テキストを読点やスペースで区切ってキーワード化
+            const keywords = finalTranscript.split(/[\s、。]+/).filter(k => k.length > 0);
+
+            const payload = {
+                topic: currentTopic,
+                keywords: keywords.length > 0 ? keywords : ["認識不能"],
+                time_taken_ms: timeTakenMs
+            };
+
+            const res = await fetch('/api/v1/training/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            resultContainer.style.display = 'block';
+            resultJson.textContent = JSON.stringify(result, null, 2);
+            statusEl.textContent = "評価完了";
+        });
+    </script>
+</body>
+
+</html>
