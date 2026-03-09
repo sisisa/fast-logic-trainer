@@ -1,70 +1,102 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fast Logic Trainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 20px;
-            line-height: 1.6;
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* 波形アニメーション用のカスタムCSS */
+        .recording-pulse {
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
-
-        .card {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-right: 10px;
-        }
-
-        button:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-        }
-
-        #status {
-            font-weight: bold;
-            color: #dc3545;
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
     </style>
 </head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
+                Fast Logic Trainer
+            </h1>
+            <p class="text-slate-500 font-medium">エンジニアの思考の反射神経を計測・最適化</p>
+        </div>
 
-<body>
-    <h1>Fast Logic Trainer</h1>
+        <!-- Step 1: Topic -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 transition-all hover:shadow-md">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                    お題の取得
+                </h2>
+                <button id="get-topic-btn" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors text-sm shadow-sm">
+                    新しいお題を取得
+                </button>
+            </div>
+            
+            <div class="bg-slate-50 rounded-xl p-6 border-2 border-dashed border-slate-200 text-center min-h-[120px] flex items-center justify-center">
+                <p id="topic-text" class="text-lg text-slate-400 font-medium">待機中... ボタンを押してお題を取得してください</p>
+            </div>
+        </div>
 
-    <div class="card">
-        <h2>1. お題の取得</h2>
-        <p id="topic-text">待機中...</p>
-        <button id="get-topic-btn">お題を取得</button>
-    </div>
+        <!-- Step 2: Recording -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 transition-all hover:shadow-md">
+            <h2 class="text-xl font-bold flex items-center gap-2 mb-6">
+                <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                音声回答（STT）
+            </h2>
+            
+            <div class="flex gap-4 mb-6">
+                <button id="start-btn" disabled class="flex-1 bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
+                    <span class="text-xl">🎤</span> 録音開始
+                </button>
+                <button id="stop-btn" disabled class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <span class="text-xl">⏹</span> 終了して評価
+                </button>
+            </div>
 
-    <div class="card">
-        <h2>2. 音声回答（STT）</h2>
-        <button id="start-btn" disabled>🎤 録音開始</button>
-        <button id="stop-btn" disabled>⏹ 終了して評価</button>
-        <p id="status"></p>
-        <div><strong>認識されたテキスト:</strong> <span id="transcript"></span></div>
-    </div>
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <div id="status-indicator" class="w-3 h-3 rounded-full bg-slate-300"></div>
+                    <p id="status" class="text-sm font-semibold text-slate-500">待機中...</p>
+                </div>
+                
+                <div class="bg-slate-50 rounded-xl p-4 min-h-[100px] border border-slate-100 relative">
+                    <div class="absolute -top-3 left-4 bg-white px-2 text-xs font-semibold text-slate-400">認識されたテキスト</div>
+                    <p id="transcript" class="text-slate-700 leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
 
-    <div class="card" id="result-container" style="display: none;">
-        <h2>3. 評価結果</h2>
-        <pre id="result-json" style="background: #e9ecef; padding: 16px; border-radius: 4px;"></pre>
+        <!-- Step 3: Result -->
+        <div id="result-container" class="bg-white rounded-2xl shadow-sm border border-emerald-100 p-8 transition-all hidden">
+            <h2 class="text-xl font-bold flex items-center gap-2 mb-6 text-emerald-800">
+                <span class="bg-emerald-100 text-emerald-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+                評価結果
+            </h2>
+            
+            <!-- Result UI elements will be populated here -->
+            <div class="grid grid-cols-2 gap-4 mb-6" id="result-stats">
+            </div>
+
+            <div class="bg-emerald-50 rounded-xl p-5 border border-emerald-100">
+                <p id="result-feedback" class="text-emerald-800 font-medium"></p>
+            </div>
+            
+            <div class="mt-6">
+                <p class="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">RAW JSON</p>
+                <pre id="result-json" class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-xs overflow-x-auto whitespace-pre-wrap font-mono"></pre>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -74,81 +106,150 @@
 
         // Web Speech APIの初期化
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ja-JP';
-        recognition.continuous = true;
-        recognition.interimResults = true;
+        let recognition = null;
+        
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+        } else {
+            alert("お使いのブラウザはWeb Speech APIをサポートしていません。Chrome環境をお試しください。");
+        }
 
         const topicText = document.getElementById('topic-text');
         const transcriptEl = document.getElementById('transcript');
         const statusEl = document.getElementById('status');
+        const statusIndicator = document.getElementById('status-indicator');
         const getTopicBtn = document.getElementById('get-topic-btn');
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
         const resultContainer = document.getElementById('result-container');
+        const resultStats = document.getElementById('result-stats');
+        const resultFeedback = document.getElementById('result-feedback');
         const resultJson = document.getElementById('result-json');
 
         // お題取得APIの呼び出し
         getTopicBtn.addEventListener('click', async () => {
-            const res = await fetch('/api/v1/training/topic');
-            const data = await res.json();
-            currentTopic = data.topic;
-            topicText.textContent = currentTopic;
-            startBtn.disabled = false;
-        });
-
-        // 音声認識の開始
-        startBtn.addEventListener('click', () => {
-            finalTranscript = "";
-            transcriptEl.textContent = "";
-            startTime = Date.now();
-            recognition.start();
-            statusEl.textContent = "録音中... 話してください。";
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
-        });
-
-        // 認識中のテキスト更新
-        recognition.onresult = (event) => {
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
+            getTopicBtn.textContent = "取得中...";
+            getTopicBtn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/v1/training/topic');
+                const data = await res.json();
+                currentTopic = data.topic;
+                
+                // UI更新
+                topicText.textContent = currentTopic;
+                topicText.className = "text-2xl font-bold text-slate-800";
+                
+                // リセット
+                resultContainer.classList.add('hidden');
+                transcriptEl.textContent = "";
+                
+                if (recognition) startBtn.disabled = false;
+            } catch (error) {
+                topicText.textContent = "取得に失敗しました";
+                topicText.className = "text-lg text-rose-500 font-medium";
+            } finally {
+                getTopicBtn.textContent = "新しいお題を取得";
+                getTopicBtn.disabled = false;
             }
-            transcriptEl.textContent = finalTranscript + interimTranscript;
-        };
+        });
 
-        // 音声認識の終了と評価APIの呼び出し
-        stopBtn.addEventListener('click', async () => {
-            recognition.stop();
-            statusEl.textContent = "評価中...";
-            stopBtn.disabled = true;
-
-            const timeTakenMs = Date.now() - startTime;
-            // 簡易的に認識テキストを読点やスペースで区切ってキーワード化
-            const keywords = finalTranscript.split(/[\s、。]+/).filter(k => k.length > 0);
-
-            const payload = {
-                topic: currentTopic,
-                keywords: keywords.length > 0 ? keywords : ["認識不能"],
-                time_taken_ms: timeTakenMs
-            };
-
-            const res = await fetch('/api/v1/training/evaluate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+        if (recognition) {
+            // 音声認識の開始
+            startBtn.addEventListener('click', () => {
+                finalTranscript = "";
+                transcriptEl.textContent = "";
+                startTime = Date.now();
+                recognition.start();
+                
+                // UI状態変更
+                statusEl.textContent = "録音中... 思いつくキーワードを話してください";
+                statusEl.className = "text-sm font-semibold text-rose-500";
+                statusIndicator.className = "w-3 h-3 rounded-full bg-rose-500 recording-pulse";
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
             });
 
-            const result = await res.json();
-            resultContainer.style.display = 'block';
-            resultJson.textContent = JSON.stringify(result, null, 2);
-            statusEl.textContent = "評価完了";
-        });
+            // 認識中のテキスト更新
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                transcriptEl.textContent = finalTranscript + interimTranscript;
+            };
+
+            // 音声認識の終了と評価APIの呼び出し
+            stopBtn.addEventListener('click', async () => {
+                recognition.stop();
+                
+                // UI状態変更
+                statusEl.textContent = "評価中...";
+                statusEl.className = "text-sm font-semibold text-indigo-500";
+                statusIndicator.className = "w-3 h-3 rounded-full bg-indigo-500 animate-pulse";
+                stopBtn.disabled = true;
+
+                const timeTakenMs = Date.now() - startTime;
+                // 簡易的に認識テキストを読点やスペースで区切ってキーワード化
+                const keywords = finalTranscript.split(/[\s、。]+/).filter(k => k.length > 0);
+
+                const payload = {
+                    topic: currentTopic,
+                    keywords: keywords.length > 0 ? keywords : ["認識不能"],
+                    time_taken_ms: timeTakenMs
+                };
+
+                try {
+                    const res = await fetch('/api/v1/training/evaluate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await res.json();
+                    
+                    // 結果UIの描画
+                    resultStats.innerHTML = `
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 mb-1">思考時間</p>
+                            <p class="text-xl font-black text-slate-700">${timeTakenMs.toLocaleString()} <span class="text-sm font-medium text-slate-400">ms</span></p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 mb-1">スコア</p>
+                            <p class="text-2xl font-black ${result.score > 80 ? 'text-emerald-500' : 'text-amber-500'}">${result.score}</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 col-span-2">
+                            <p class="text-xs font-bold text-slate-400 mb-2">抽出キーワード (${keywords.length})</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${keywords.map(k => `<span class="bg-white border border-slate-200 px-2 py-1 rounded text-sm text-slate-600 font-medium">${k}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    resultFeedback.textContent = "💡 " + result.feedback;
+                    resultJson.textContent = JSON.stringify(result, null, 2);
+                    
+                    resultContainer.classList.remove('hidden');
+                    
+                    statusEl.textContent = "待機中";
+                    statusEl.className = "text-sm font-semibold text-slate-500";
+                    statusIndicator.className = "w-3 h-3 rounded-full bg-slate-300";
+                    
+                } catch (error) {
+                    statusEl.textContent = "評価エラーが発生しました";
+                    statusEl.className = "text-sm font-semibold text-rose-500";
+                    statusIndicator.className = "w-3 h-3 rounded-full bg-rose-500";
+                }
+            });
+        }
     </script>
 </body>
-
 </html>

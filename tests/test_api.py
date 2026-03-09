@@ -1,8 +1,9 @@
-def test_root_redirect(client):
-    """ルートアクセス時にSwagger UIへリダイレクトされるかテスト"""
-    response = client.get("/", follow_redirects=False)
-    assert response.status_code == 307
-    assert response.headers["location"] == "/docs"
+def test_serve_ui(client):
+    """ルートアクセス時にUIが提供されるかテスト"""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Fast Logic Trainer" in response.text
 
 def test_health_check(client):
     """ヘルスチェックエンドポイントの可用性テスト"""
